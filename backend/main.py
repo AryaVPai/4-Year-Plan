@@ -10,7 +10,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from agent import check_concentration, generate_plan_agentic, edit_plan
+from agent import check_concentration, generate_plan_agentic, edit_plan, count_course_mentions
 from database import (
     init_db,
     get_cached_plan,
@@ -46,7 +46,7 @@ MAX_DAILY_GENERATIONS = 200  # tune this to your budget
 
 
 def check_global_daily_limit():
-    today = datetime.date.today() if False else datetime.datetime.now().date()
+    today = datetime.datetime.now().date()
     if _daily_counter["date"] != today:
         _daily_counter["date"] = today
         _daily_counter["count"] = 0
@@ -71,12 +71,13 @@ class PlanRequest(BaseModel):
 
 
 class EditPlanRequest(BaseModel):
+    college: str = ""
     current_plan: str
     edit_request: str
 
 
 class SavePlanRequest(BaseModel):
-    user_identifier: str  # for now: anything unique per browser/user, e.g. a generated UUID stored in localStorage
+    user_identifier: str
     college: str
     location: str = ""
     major: str
@@ -131,12 +132,18 @@ def generate_plan(request: Request, body: PlanRequest):
 
 
 @app.post("/edit-plan")
-@limiter.limit("20/day")  # cheap call, can allow more of these
+@limiter.limit("3/day")  # edits are cheap, but still capped to prevent abuse
 def edit_plan_endpoint(request: Request, body: EditPlanRequest):
     if not body.current_plan.strip() or not body.edit_request.strip():
         raise HTTPException(status_code=400, detail="Current plan and edit request are required")
 
-    updated = edit_plan(body.current_plan, body.edit_request)
+    if count_course_mentions(body.edit_request) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Please request one course change at a time. Submit additional changes separately.",
+        )
+
+    updated = edit_plan(body.current_plan, body.edit_request, body.college)
     return {"status": "complete", "plan": updated}
 
 

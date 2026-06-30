@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -48,6 +49,7 @@ def check_concentration(college: str, location: str, major: str) -> dict:
     print(f"🔍 CONCENTRATION CHECK: {query}")
     search_result = search_web(query)
 
+    raw = None
     try:
         response = claude_client.messages.create(
             model=MODEL,
@@ -73,14 +75,14 @@ Reply with JSON only.""",
             ],
         )
         raw = response.content[0].text.strip()
-        print(f"🤖 RAW CLAUDE RESPONSE: {raw}")  # always show this, even on success
-        raw = raw.replace("```json", "").replace("```", "").strip()
-        result = json.loads(raw)
+        print(f"🤖 RAW CLAUDE RESPONSE: {raw}")
+        raw_clean = raw.replace("```json", "").replace("```", "").strip()
+        result = json.loads(raw_clean)
         print(f"🎯 CONCENTRATION RESULT: {result}")
         return result
     except Exception as e:
         print(f"⚠️ CONCENTRATION CHECK ERROR: {e}")
-        print(f"⚠️ RAW TEXT THAT FAILED TO PARSE: {raw if 'raw' in locals() else 'N/A — API call itself failed'}")
+        print(f"⚠️ RAW TEXT THAT FAILED TO PARSE: {raw if raw is not None else 'N/A — API call itself failed'}")
         return {"has_concentrations": False}
 
 
@@ -177,20 +179,58 @@ before writing the plan.""",
 
 
 # ─────────────────────────────────────────────
-# 3. Cheap edit — no search, no tools, just a rewrite
+# 3. Cheap edit — single course swap, with verification + cascade warning
 # ─────────────────────────────────────────────
 
-def edit_plan(current_plan: str, edit_request: str) -> str:
+COURSE_CODE_PATTERN = re.compile(r"\b([A-Z]{2,5})\s?-?\s?(\d{3,5})\b")
+
+
+def count_course_mentions(text: str) -> int:
+    """Rough check: counts distinct course code mentions in the edit request."""
+    matches = COURSE_CODE_PATTERN.findall(text)
+    return len(set(matches))
+
+
+def edit_plan(current_plan: str, edit_request: str, college: str = "") -> str:
     """
-    Modifies an existing plan based on a user's requested change.
-    Deliberately cheap: single Haiku call, no search, no tool loop.
+    Modifies an existing plan based on a single requested course change.
+    Cheap by default (one Haiku call, no agentic loop) — but:
+      - If the edit mentions a specific course code, we run ONE verification
+        search so we don't hallucinate the course name/credits (e.g. SCLA 101).
+      - The model is instructed to flag any cascading prerequisite conflicts
+        caused by the swap, based on what's visible in the plan itself.
     """
+    verified_course_info = ""
+
+    match = COURSE_CODE_PATTERN.search(edit_request)
+    if match:
+        course_code = f"{match.group(1)} {match.group(2)}"
+        query = f"{college} {course_code} course name credits" if college else f"{course_code} course name credits"
+        print(f"🔍 VERIFYING COURSE: {query}")
+        search_result = search_web(query)
+        verified_course_info = (
+            f"\n\nVerified info about {course_code} from a web search "
+            f"(use this exact course name/credits, do not guess):\n{search_result}"
+        )
+
     response = claude_client.messages.create(
         model=MODEL,
         max_tokens=2048,
-        system="""You edit existing 4-year academic plans based on a student's requested change.
-Keep the same format and all unaffected parts of the plan exactly the same.
-Only change what the student asked you to change. Return the complete updated plan.""",
+        system="""You edit existing 4-year academic plans based on a single requested course change.
+
+Rules:
+- Keep the same format and all unaffected parts of the plan exactly the same.
+- Only change what the student asked you to change — this should be ONE course swap.
+- If verified course information is provided below, you MUST use the exact course name and 
+  credit hours from it — never guess or substitute a course name from memory, even if it 
+  sounds plausible. Course codes can be misleading (e.g. SCLA 101 is NOT a language course).
+- After making the swap, check the REST of the plan: if any later course lists the course 
+  being removed as a prerequisite (based on notes already in the plan), add a short warning 
+  immediately after the plan text explaining which later courses may now have an unmet 
+  prerequisite, and recommend the student confirm with an advisor before registering.
+- If no such conflict exists, do not add any warning.
+
+Return the complete updated plan, followed by the warning section if applicable.""",
         messages=[
             {
                 "role": "user",
@@ -198,6 +238,7 @@ Only change what the student asked you to change. Return the complete updated pl
 {current_plan}
 
 Requested change: {edit_request}
+{verified_course_info}
 
 Return the complete updated plan.""",
             }
