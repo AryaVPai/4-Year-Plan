@@ -1,0 +1,16 @@
+.signup-bottom{
+    margin-top:25px;
+    text-align:center;
+    color:var(--dark);
+    font-size:15px;
+}
+
+.signup-bottom a{
+    color:var(--dark);
+    font-weight:bold;
+    text-decoration:none;
+}
+
+.signup-bottom a:hover{
+    text-decoration:underline;
+}
