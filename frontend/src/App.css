@@ -1,8 +1,8 @@
-:root {
-  --mint: #b8e0d2;
-  --dark-green: #3f6a63;
-  --cream: #f8f5ef;
-  --white: #ffffff;
+:root{
+    --mint:#b9ddd0;
+    --dark:#44675f;
+    --cream:#f7f4ed;
+    --white:#ffffff;
 }
 
 * {
