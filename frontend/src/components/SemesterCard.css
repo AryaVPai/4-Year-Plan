@@ -1,0 +1,161 @@
+.semester-card{
+
+    width:100%;
+
+    border-radius:18px;
+
+    overflow:hidden;
+
+    background:white;
+
+    border:2px solid var(--dark);
+
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+
+    transition:.2s;
+}
+
+.semester-card:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 10px 24px rgba(0,0,0,.12);
+}
+
+/* ---------- HEADER ---------- */
+
+.semester-header{
+
+    background:var(--dark);
+
+    color:var(--mint);
+
+    padding:14px;
+
+    font-size:20px;
+
+    font-weight:bold;
+
+    text-align:center;
+
+    letter-spacing:.5px;
+}
+
+/* ---------- BODY ---------- */
+
+.semester-body{
+
+    display:flex;
+
+    flex-direction:column;
+}
+
+.course-row{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:14px 18px;
+
+    border-bottom:1px solid #e6e6e6;
+}
+
+.light-row{
+
+    background:white;
+}
+
+.dark-row{
+
+    background:#f7f7f7;
+}
+
+.course-info{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:3px;
+}
+
+.course-code{
+
+    font-weight:bold;
+
+    color:var(--dark);
+
+    font-size:16px;
+}
+
+.course-title{
+
+    color:#555;
+
+    font-size:14px;
+}
+
+.course-right{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+}
+
+/* ---------- COURSE TYPE BADGES ---------- */
+
+.course-type{
+
+    background:var(--mint);
+
+    color:var(--dark);
+
+    padding:4px 10px;
+
+    border-radius:20px;
+
+    font-size:12px;
+
+    font-weight:bold;
+
+    white-space:nowrap;
+}
+
+.course-credits{
+
+    width:26px;
+
+    text-align:center;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    color:var(--dark);
+}
+
+/* ---------- FOOTER ---------- */
+
+.semester-footer{
+
+    background:#edf7f3;
+
+    border-top:2px solid var(--dark);
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:14px 18px;
+
+    font-weight:bold;
+
+    color:var(--dark);
+
+    font-size:17px;
+}
