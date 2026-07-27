@@ -1,5 +1,4 @@
 import sqlite3
-import json
 import datetime
 from contextlib import contextmanager
 
@@ -9,6 +8,17 @@ DB_PATH = "plans.db"
 def init_db():
     """Run once at startup — creates tables if they don't exist."""
     with get_db() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE NOT NULL,
+                hashed_password TEXT NOT NULL,
+                created_at TEXT
+            )
+        """)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS plans_cache (
                 cache_key TEXT PRIMARY KEY,
@@ -47,13 +57,50 @@ def get_db():
 
 def make_cache_key(college: str, location: str, major: str, concentration: str = None) -> str:
     """
-    Location is now part of the cache key — Purdue West Lafayette and Purdue Indianapolis
+    Location is part of the cache key — Purdue West Lafayette and Purdue Indianapolis
     must never share a cached plan, since their requirements can differ.
     """
     parts = [college.strip().lower(), location.strip().lower(), major.strip().lower()]
     if concentration:
         parts.append(concentration.strip().lower())
     return ":".join(parts)
+
+
+# ───────────────────────────────
+# Users
+# ───────────────────────────────
+
+def create_user(first_name: str, last_name: str, email: str, username: str, hashed_password: str) -> bool:
+    now = datetime.datetime.now().isoformat()
+    with get_db() as conn:
+        try:
+            conn.execute(
+                """INSERT INTO users (first_name, last_name, email, username, hashed_password, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (first_name, last_name, email, username, hashed_password, now)
+            )
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False  # username or email already taken
+
+
+def get_user_by_username(username: str):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, first_name, last_name, email, username, hashed_password FROM users WHERE username = ?",
+            (username,)
+        ).fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "first_name": row[1],
+        "last_name": row[2],
+        "email": row[3],
+        "username": row[4],
+        "hashed_password": row[5],
+    }
 
 
 # ───────────────────────────────
@@ -95,7 +142,7 @@ def save_cached_plan(college: str, location: str, major: str, concentration: str
 
 
 # ───────────────────────────────
-# Saved plans (per user, for "open it again and edit")
+# Saved plans (per user)
 # ───────────────────────────────
 
 def save_user_plan(user_identifier: str, college: str, location: str, major: str, concentration: str, plan_text: str) -> int:
@@ -123,7 +170,8 @@ def update_user_plan(plan_id: int, plan_text: str):
 def get_user_plans(user_identifier: str):
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, college, location, major, concentration, plan_text, updated_at FROM saved_plans WHERE user_identifier = ? ORDER BY updated_at DESC",
+            """SELECT id, college, location, major, concentration, plan_text, updated_at
+               FROM saved_plans WHERE user_identifier = ? ORDER BY updated_at DESC""",
             (user_identifier,),
         ).fetchall()
 
