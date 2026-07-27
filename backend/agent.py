@@ -110,7 +110,24 @@ Rules:
 - Follow the department's suggested sequence above all else for ordering.
 - Respect prerequisite chains — never place a course before its prerequisite.
 - Year 1 Fall should be the lightest/most introductory.
-- Cite source URLs at the very end."""
+- Cite source URLs at the very end.
+
+After writing the plan, output it as a JSON object in this exact format:
+{
+  "semesters": [
+    {
+      "name": "Year 1 - Fall",
+      "courses": [
+        {"code": "CS 18000", "title": "Problem Solving", "credits": 4, "type": "Major Core"},
+        ...
+      ]
+    },
+    ...
+  ],
+  "total_credits": 120,
+  "sources": ["url1", "url2"]
+}
+Output ONLY the JSON, no other text before or after it."""
 
 
 def generate_plan_agentic(college: str, location: str, major: str, concentration: str = None) -> dict:
