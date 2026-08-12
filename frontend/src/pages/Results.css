@@ -10,51 +10,15 @@
 /* ---------------- PROFILE ---------------- */
 
 .profile-container{
-
-    position:fixed;
-
-    top:170px;
-
-    right:35px;
-
-    width:70px;
-
-    display:flex;
-
-    justify-content:center;
-
-    z-index:1000;
+    position: absolute;
+    top: 170px;
+    right: 35px;
+    z-index: 1000;
 }
 
 .profile-btn{
-
     width:55px;
     height:55px;
-
-    border-radius:50%;
-
-    border:2px solid var(--dark);
-
-    background:white;
-
-    color:var(--dark);
-
-    font-size:28px;
-
-    cursor:pointer;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    transition:.2s;
-}
-
-.profile-btn:hover{
-
-    background:#fafafa;
-
-    transform:scale(1.04);
 }
 
 .profile-menu{
@@ -72,8 +36,6 @@
     border:2px solid var(--dark);
 
     border-radius:12px;
-
-    overflow:hidden;
 
     box-shadow:0 8px 20px rgba(0,0,0,.15);
 }
